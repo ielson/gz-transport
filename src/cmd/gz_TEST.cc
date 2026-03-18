@@ -429,6 +429,8 @@ TEST(gzTest, ServiceRequestNoInput)
   EXPECT_EQ("data: \"good_value\"\n\n", output.cout);
 }
 
+//////////////////////////////////////////////////
+/// \brief Check 'gz service -r' to request a service with inferred types
 TEST(gzTest, ServiceRequestAutoTypes)
 {
   transport::Node node;
@@ -457,6 +459,51 @@ TEST(gzTest, ServiceRequestAutoTypes)
   EXPECT_EQ(output->cerr, "");
 }
 
+//////////////////////////////////////////////////
+/// \brief Check 'gz service -r' to request a one-way service with inferred
+/// request type.
+TEST(gzTest, ServiceOnewayRequestAutoTypes)
+{
+  g_topicCBStr = "bad_value";
+  transport::Node node;
+
+  // Advertise a one-way service.
+  std::string service = "/oneway";
+  EXPECT_TRUE(node.Advertise(service, srvOneway));
+
+  auto output = exec_with_retry(
+    {"service", "-s", service, "--req", "data: \"good_value\""},
+    [](const auto &/*_out*/)
+    {
+      return g_topicCBStr == "good_value";
+    });
+
+  ASSERT_TRUE(output);
+  EXPECT_EQ("good_value", g_topicCBStr);
+}
+
+//////////////////////////////////////////////////
+/// \brief Check 'gz service -r' to request a service without input args
+/// with inferred response type.
+TEST(gzTest, ServiceRequestNoInputAutoTypes)
+{
+  transport::Node node;
+
+  // Advertise a service without input.
+  std::string service = "/no_input";
+  EXPECT_TRUE(node.Advertise(service, srvNoInput));
+
+  auto output = exec_with_retry(
+    {"service", "-s", service, "--req"},
+    [](const auto &_out)
+    {
+      return _out.cout == "data: \"good_value\"\n\n";
+    });
+
+  ASSERT_TRUE(output);
+  EXPECT_EQ("data: \"good_value\"\n\n", output->cout);
+  EXPECT_EQ("", output->cerr);
+}
 
 //////////////////////////////////////////////////
 /// \brief Check 'gz topic -e' running the publisher on a separate process.
